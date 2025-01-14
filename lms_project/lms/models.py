@@ -34,6 +34,8 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.name} ({self.email})"
 
+
+
 class Enrollment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -41,16 +43,39 @@ class Enrollment(models.Model):
 
     class Meta:
         unique_together = ('course', 'student')
-
+        
     def save(self, *args, **kwargs):
         if not self.pk:  # Only for new enrollments
             if self.course.enrolled_students >= self.course.capacity:
                 raise ValidationError("Course is at full capacity")
-            self.course.enrolled_students += 1
-            self.course.save()
+        
+            #Atomic update of the field enrolled_students
+            Course.objects.filter(pk=self.course.pk).update(enrolled_students=F('enrolled_students') + 1)
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        self.course.enrolled_students -= 1
-        self.course.save()
+        #Atomic update of the field enrolled_students
+        Course.objects.filter(pk=self.course.pk).update(enrolled_students=F('enrolled_students') - 1)
         super().delete(*args, **kwargs)
+
+
+# class Enrollment(models.Model):
+    # course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    # student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    # enrollment_date = models.DateField(auto_now_add=True)
+
+    # class Meta:
+        # unique_together = ('course', 'student')
+
+    # def save(self, *args, **kwargs):
+        # if not self.pk:  # Only for new enrollments
+            # if self.course.enrolled_students >= self.course.capacity:
+                # raise ValidationError("Course is at full capacity")
+            # self.course.enrolled_students += 1
+            # self.course.save()
+        # super().save(*args, **kwargs)
+
+    # def delete(self, *args, **kwargs):
+        # self.course.enrolled_students -= 1
+        # self.course.save()
+        # super().delete(*args, **kwargs)
