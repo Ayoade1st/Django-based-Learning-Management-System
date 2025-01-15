@@ -1,0 +1,245 @@
+{#templates/Ims/course_list.html#}
+
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Courses</h2>
+    <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+        Add Course
+    </button>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Capacity</th>
+                    <th>Enrolled</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                    <tr>
+                        <td>{{ course.title }}</td>
+                        <td>{{ course.start_date }}</td>
+                        <td>{{ course.end_date }}</td>
+                        <td>{{ course.capacity }}</td>
+                        <td>{{ course.enrolled_students }}</td>
+                         <td>
+                            <button class="btn btn-sm btn-warning" onclick="editCourse({{ course.id }})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteCourse({{ course.id }})">Delete</button>
+                           <a class="btn btn-sm btn-info" href="#">View Students</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+           {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+           {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+           {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            {% endif %}
+        </ul>
+   </nav>
+
+    <div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCourseModalLabel">Add Course</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                     <div id="addCourseError" class="alert alert-danger" style="display:none;"></div>
+                    <form id="addCourseForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="capacity" class="form-label">Capacity</label>
+                            <input type="number" class="form-control" id="capacity" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="addCourse()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCourseModalLabel">Edit Course</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                     <div id="editCourseError" class="alert alert-danger" style="display:none;"></div>
+                    <form id="editCourseForm">
+                        <input type="hidden" id="edit_course_id">
+                        <div class="mb-3">
+                            <label for="edit_title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="edit_title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="edit_description" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="edit_start_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="edit_end_date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_capacity" class="form-label">Capacity</label>
+                            <input type="number" class="form-control" id="edit_capacity" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="updateCourse()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+      async function addCourse() {
+          const title = document.getElementById('title').value;
+          const description = document.getElementById('description').value;
+          const start_date = document.getElementById('start_date').value;
+          const end_date = document.getElementById('end_date').value;
+          const capacity = document.getElementById('capacity').value;
+           $('#addCourseError').hide()
+          const data = {
+            title: title,
+            description: description,
+            start_date: start_date,
+            end_date: end_date,
+            capacity: capacity,
+          };
+        try {
+            const response = await fetch('/api/courses/', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify(data),
+            });
+            if (response.ok) {
+                window.location.reload()
+                $('#addCourseModal').modal('hide');
+            }else{
+                 const errorData = await response.json()
+                let errorMessage = '';
+                for(const key in errorData){
+                  errorMessage += `${key}: ${errorData[key].join(', ')} \n`
+                }
+                $('#addCourseError').text(errorMessage).show()
+            }
+        } catch (error) {
+            $('#addCourseError').text("An error occurred, please try again later").show()
+        }
+      }
+       async function editCourse(courseId){
+            try {
+                const response = await fetch(`/api/courses/${courseId}/`)
+                if (response.ok){
+                   const data = await response.json()
+                   $('#edit_course_id').val(data.id)
+                   $('#edit_title').val(data.title)
+                   $('#edit_description').val(data.description)
+                   $('#edit_start_date').val(data.start_date)
+                   $('#edit_end_date').val(data.end_date)
+                   $('#edit_capacity').val(data.capacity)
+                   $('#editCourseModal').modal('show')
+                }
+            } catch (error) {
+               console.error('Error',error);
+            }
+        }
+        async function updateCourse(){
+            const courseId = document.getElementById('edit_course_id').value;
+            const title = document.getElementById('edit_title').value;
+            const description = document.getElementById('edit_description').value;
+            const start_date = document.getElementById('edit_start_date').value;
+            const end_date = document.getElementById('edit_end_date').value;
+            const capacity = document.getElementById('edit_capacity').value;
+
+           $('#editCourseError').hide()
+          const data = {
+             title: title,
+             description: description,
+            start_date: start_date,
+             end_date: end_date,
+            capacity: capacity,
+         };
+         try {
+              const response = await fetch(`/api/courses/${courseId}/`,{
+                 method:'PUT',
+                 headers:{
+                    'Content-Type':'application/json',
+                    'X-CSRFToken':'{{ csrf_token }}'
+                },
+                 body:JSON.stringify(data)
+              });
+             if(response.ok){
+                window.location.reload()
+                 $('#editCourseModal').modal('hide')
+              }else{
+                 const errorData = await response.json()
+                let errorMessage = '';
+                for(const key in errorData){
+                  errorMessage += `${key}: ${errorData[key].join(', ')} \n`
+                }
+                $('#editCourseError').text(errorMessage).show()
+              }
+         } catch (error) {
+            $('#editCourseError').text("An error occurred, please try again later").show()
+         }
+        }
+      async function deleteCourse(courseId){
+        try {
+            const response = await fetch(`/api/courses/${courseId}/`,{
+              method: 'DELETE',
+              headers:{
+                  'X-CSRFToken': '{{ csrf_token }}',
+              }
+            })
+            if(response.ok){
+                window.location.reload()
+            }else{
+                console.error("Error",response.statusText);
+            }
+        } catch (error) {
+            console.error('Error',error);
+        }
+      }
+    </script>
+{% endblock %}

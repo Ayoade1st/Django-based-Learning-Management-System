@@ -1,0 +1,236 @@
+{#templates/Ims/student_list.html#}
+
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Students</h2>
+    <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+        Add Student
+    </button>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                    <tr>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.email }}</td>
+                        <td>{{ student.age }}</td>
+                        <td>{{ student.get_gender_display }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editStudent({{ student.id }})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteStudent({{ student.id }})">Delete</button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+           {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+           {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+           {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+     <div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addStudentModalLabel">Add Student</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                     <div id="addStudentError" class="alert alert-danger" style="display:none;"></div>
+                    <form id="addStudentForm">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+                         <div class="mb-3">
+                            <label for="age" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="age" required>
+                        </div>
+                        <div class="mb-3">
+                           <label for="gender" class="form-label">Gender</label>
+                           <select class="form-control" id="gender" required>
+                              <option value="M">Male</option>
+                              <option value="F">Female</option>
+                              <option value="O">Other</option>
+                           </select>
+                         </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="addStudent()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+   <div class="modal fade" id="editStudentModal" tabindex="-1" aria-labelledby="editStudentModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editStudentModalLabel">Edit Student</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                     <div id="editStudentError" class="alert alert-danger" style="display:none;"></div>
+                    <form id="editStudentForm">
+                        <input type="hidden" id="edit_student_id">
+                        <div class="mb-3">
+                            <label for="edit_name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="edit_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="edit_email" required>
+                        </div>
+                         <div class="mb-3">
+                            <label for="edit_age" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="edit_age" required>
+                        </div>
+                        <div class="mb-3">
+                           <label for="edit_gender" class="form-label">Gender</label>
+                           <select class="form-control" id="edit_gender" required>
+                              <option value="M">Male</option>
+                              <option value="F">Female</option>
+                              <option value="O">Other</option>
+                           </select>
+                         </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="updateStudent()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+      async function addStudent() {
+          const name = document.getElementById('name').value;
+          const email = document.getElementById('email').value;
+          const age = document.getElementById('age').value;
+          const gender = document.getElementById('gender').value;
+          $('#addStudentError').hide()
+          const data = {
+            name: name,
+            email: email,
+            age: age,
+            gender: gender,
+          };
+
+          try {
+            const response = await fetch('/api/students/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+              },
+              body: JSON.stringify(data),
+            });
+             if (response.ok) {
+                 window.location.reload()
+                $('#addStudentModal').modal('hide');
+            }else{
+                const errorData = await response.json()
+                let errorMessage = '';
+                for(const key in errorData){
+                  errorMessage += `${key}: ${errorData[key].join(', ')} \n`
+                }
+                $('#addStudentError').text(errorMessage).show()
+            }
+          } catch (error) {
+               $('#addStudentError').text("An error occurred, please try again later").show()
+          }
+      }
+       async function editStudent(studentId){
+            try {
+                const response = await fetch(`/api/students/${studentId}/`)
+                if (response.ok){
+                   const data = await response.json()
+                   $('#edit_student_id').val(data.id)
+                   $('#edit_name').val(data.name)
+                   $('#edit_email').val(data.email)
+                   $('#edit_age').val(data.age)
+                   $('#edit_gender').val(data.gender)
+                   $('#editStudentModal').modal('show')
+                }
+            } catch (error) {
+               console.error('Error',error);
+            }
+        }
+      async function updateStudent(){
+            const studentId = document.getElementById('edit_student_id').value;
+             const name = document.getElementById('edit_name').value;
+              const email = document.getElementById('edit_email').value;
+          const age = document.getElementById('edit_age').value;
+          const gender = document.getElementById('edit_gender').value;
+            $('#editStudentError').hide()
+          const data = {
+            name: name,
+            email: email,
+            age: age,
+            gender: gender,
+          };
+            try {
+              const response = await fetch(`/api/students/${studentId}/`,{
+                 method:'PUT',
+                 headers:{
+                    'Content-Type':'application/json',
+                    'X-CSRFToken':'{{ csrf_token }}'
+                },
+                 body:JSON.stringify(data)
+              });
+             if(response.ok){
+                window.location.reload()
+                $('#editStudentModal').modal('hide')
+             }else{
+                 const errorData = await response.json()
+                let errorMessage = '';
+                for(const key in errorData){
+                  errorMessage += `${key}: ${errorData[key].join(', ')} \n`
+                }
+                $('#editStudentError').text(errorMessage).show()
+             }
+            } catch (error) {
+                 $('#editStudentError').text("An error occurred, please try again later").show()
+            }
+        }
+     async function deleteStudent(studentId){
+         try {
+            const response = await fetch(`/api/students/${studentId}/`,{
+                method: 'DELETE',
+                headers:{
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            if(response.ok){
+                window.location.reload()
+            }else{
+                 console.error("Error",response.statusText)
+            }
+         } catch (error) {
+            console.error('Error', error)
+         }
+     }
+    </script>
+{% endblock %}

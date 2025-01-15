@@ -1,0 +1,131 @@
+{#templates/Ims/enrollment_list.html#}
+
+{% extends 'Ims/base.html' %}
+
+{% block content %}
+    <h2>Enrollments</h2>
+     <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
+        New Enrollment
+    </button>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Enrollment Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                    <tr>
+                        <td>{{ enrollment.student.name }}</td>
+                        <td>{{ enrollment.course.title }}</td>
+                        <td>{{ enrollment.enrollment_date }}</td>
+                        <td>
+                           <button class="btn btn-sm btn-danger" onclick="deleteEnrollment({{ enrollment.id }})">Cancel Enrollment</button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+       <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+           {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+           {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+           {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+      <div class="modal fade" id="addEnrollmentModal" tabindex="-1" aria-labelledby="addEnrollmentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addEnrollmentModalLabel">New Enrollment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                     <div id="addEnrollmentError" class="alert alert-danger" style="display:none;"></div>
+                    <form id="addEnrollmentForm">
+                        <div class="mb-3">
+                            <label for="course" class="form-label">Course</label>
+                            <select class="form-control" id="course" required>
+                                {% for course in courses %}
+                                    <option value="{{ course.id }}">{{ course.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                           <label for="student" class="form-label">Student</label>
+                            <select class="form-control" id="student" required>
+                                {% for student in students %}
+                                  <option value="{{ student.id }}">{{ student.name }}</option>
+                                {% endfor %}
+                            </select>
+                       </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                     <button type="button" class="btn btn-primary" onclick="addEnrollment()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function addEnrollment() {
+            const courseId = document.getElementById('course').value;
+            const studentId = document.getElementById('student').value;
+             $('#addEnrollmentError').hide()
+            const data = {
+                course: courseId,
+                student: studentId,
+            };
+            try {
+                const response = await fetch('/api/enrollments/', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                  },
+                  body: JSON.stringify(data),
+                });
+                if (response.ok) {
+                    window.location.reload()
+                   $('#addEnrollmentModal').modal('hide');
+                }else{
+                     const errorData = await response.json()
+                let errorMessage = '';
+                for(const key in errorData){
+                  errorMessage += `${key}: ${errorData[key].join(', ')} \n`
+                }
+                $('#addEnrollmentError').text(errorMessage).show()
+                }
+            } catch (error) {
+                $('#addEnrollmentError').text("An error occurred, please try again later").show()
+            }
+        }
+        async function deleteEnrollment(enrollmentId){
+           try {
+             const response = await fetch(`/api/enrollments/${enrollmentId}/`,{
+                method: 'DELETE',
+                headers:{
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+             })
+             if(response.ok){
+                window.location.reload()
+            }else{
+                console.error("Error",response.statusText);
+            }
+           } catch (error) {
+            console.error("Error",error);
+           }
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,350 @@
+{# templates/lms/base.html #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Learning Management System{% endblock %}</title>
+    {# Include Bootstrap CSS for responsive design and styling #}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% load static %}
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+</head>
+<body>
+    {# Navigation bar with responsive toggle for mobile devices #}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">LMS</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'course_list' %}active{% endif %}" 
+                           href="{% url 'course-list-view' %}">Courses</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}" 
+                           href="{% url 'student-list-view' %}">Students</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'enrollment_list' %}active{% endif %}" 
+                           href="{% url 'enrollment-list-view' %}">Enrollments</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {# Main content container with padding #}
+    <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+
+    {# Bootstrap JavaScript bundle for interactive components #}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+
+{# templates/lms/dashboard.html #}
+{% extends 'lms/base.html' %}
+
+{% block title %}Dashboard - LMS{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+
+{# Statistics cards for quick overview #}
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Courses</h5>
+                <h2 class="card-text">{{ courses_count }}</h2>
+                <p class="text-muted">Total active courses</p>
+                <a href="{% url 'course-list-view' %}" class="btn btn-primary">Manage Courses</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Students</h5>
+                <h2 class="card-text">{{ students_count }}</h2>
+                <p class="text-muted">Enrolled students</p>
+                <a href="{% url 'student-list-view' %}" class="btn btn-primary">Manage Students</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Enrollments</h5>
+                <h2 class="card-text">{{ enrollments_count }}</h2>
+                <p class="text-muted">Active enrollments</p>
+                <a href="{% url 'enrollment-list-view' %}" class="btn btn-primary">Manage Enrollments</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Recent activity sections #}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Courses</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for course in recent_courses %}
+                        <div class="list-group-item">
+                            <h6 class="mb-1">{{ course.title }}</h6>
+                            <small class="text-muted">
+                                Enrolled: {{ course.enrollment_count }} | Starts: {{ course.start_date|date:"M d, Y" }}
+                            </small>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No courses available</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Enrollments</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for enrollment in recent_enrollments %}
+                        <div class="list-group-item">
+                            <h6 class="mb-1">{{ enrollment.student.name }}</h6>
+                            <small class="text-muted">
+                                Course: {{ enrollment.course.title }} | 
+                                Date: {{ enrollment.enrollment_date|date:"M d, Y" }}
+                            </small>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No recent enrollments</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# templates/lms/course_list.html #}
+{% extends 'lms/base.html' %}
+
+{% block title %}Courses - LMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Courses</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+        <i class="bi bi-plus-lg"></i> Add Course
+    </button>
+</div>
+
+{# Course listing table with responsive design #}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Duration</th>
+                        <th>Capacity</th>
+                        <th>Enrolled</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                    <tr>
+                        <td>{{ course.title }}</td>
+                        <td>{{ course.start_date|date:"M d, Y" }} - {{ course.end_date|date:"M d, Y" }}</td>
+                        <td>{{ course.capacity }}</td>
+                        <td>{{ course.enrollment_count }}</td>
+                        <td>
+                            {% if course.start_date|date:"Y-m-d" > now|date:"Y-m-d" %}
+                                <span class="badge bg-info">Upcoming</span>
+                            {% elif course.end_date|date:"Y-m-d" < now|date:"Y-m-d" %}
+                                <span class="badge bg-secondary">Completed</span>
+                            {% else %}
+                                <span class="badge bg-success">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="editCourse({{ course.id }})">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="deleteCourse({{ course.id }})">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No courses available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# Add Course Modal #}
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="end_date" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Capacity</label>
+                        <input type="number" class="form-control" name="capacity" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCourse()">Save Course</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# templates/lms/student_list.html #}
+{% extends 'lms/base.html' %}
+
+{% block title %}Students - LMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Students</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+        <i class="bi bi-plus-lg"></i> Add Student
+    </button>
+</div>
+
+{# Student listing with search and filtering #}
+<div class="card">
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <input type="text" class="form-control" placeholder="Search students..." id="studentSearch">
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Enrolled Courses</th>
+                        <th>Join Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.email }}</td>
+                        <td>{{ student.courses_enrolled }}</td>
+                        <td>{{ student.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="editStudent({{ student.id }})">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="deleteStudent({{ student.id }})">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No students registered</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# Add Student Modal #}
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addStudentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Age</label>
+                            <input type="number" class="form-control" name="age" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" name="gender" required>
+                                <option value="">Select gender</option>
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="O">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div

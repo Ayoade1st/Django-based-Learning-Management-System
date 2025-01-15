@@ -1,0 +1,35 @@
+{#templates/Ims/dashboard.html#}
+
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Courses</h5>
+                    <p class="card-text">Total: {{ courses_count }}</p>
+                    <a href="{% url 'course_list' %}" class="btn btn-primary">Manage Courses</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Students</h5>
+                    <p class="card-text">Total: {{ students_count }}</p>
+                    <a href="{% url 'student_list' %}" class="btn btn-primary">Manage Students</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Enrollments</h5>
+                    <p class="card-text">Total: {{ enrollments_count }}</p>
+                    <a href="{% url 'enrollment_list' %}" class="btn btn-primary">Manage Enrollments</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
